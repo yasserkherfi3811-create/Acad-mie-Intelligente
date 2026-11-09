@@ -1,0 +1,35 @@
+{
+  "name": "academie-intelligente",
+  "version": "1.0.0",
+  "description": "Académie Intelligente - gestion d'académie (étudiants, formations, finances)",
+  "author": "Académie Intelligente",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "build:web": "node scripts/build-web.js",
+    "dev": "npm run build:web && electron .",
+    "dist:win": "npm run build:web && electron-builder --win --publish never",
+    "cap:sync": "npm run build:web && cap sync"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/cli": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/filesystem": "^6.0.2",
+    "@capacitor/ios": "^6.2.0",
+    "@capacitor/share": "^6.0.3",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "html2pdf.js": "^0.10.1",
+    "tailwindcss": "^3.4.17"
+  },
+  "build": {
+    "appId": "com.academie.intelligente",
+    "productName": "Académie Intelligente",
+    "directories": { "output": "dist-electron" },
+    "files": ["electron/**", "www/**"],
+    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }, { "target": "portable", "arch": ["x64"] }] },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "artifactName": "Academie-Setup-${version}.${ext}" },
+    "portable": { "artifactName": "Academie-Portable-${version}.${ext}" }
+  }
+}

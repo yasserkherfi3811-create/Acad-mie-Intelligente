@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>Académie Intelligente</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{font-family:'Cairo',system-ui,sans-serif;background:#f1f5f9;color:#1e293b}
+.inp{width:100%;border:1px solid #cbd5e1;border-radius:.5rem;padding:.5rem;font-size:.875rem;background:#fff;outline:none}
+.inp:focus{box-shadow:0 0 0 2px #6366f1}
+.btn{background:#4f46e5;color:#fff;border-radius:.5rem;padding:.5rem .75rem;font-size:.875rem;font-weight:700}
+.btn2{background:#e2e8f0;color:#334155;border-radius:.5rem;padding:.25rem .6rem;font-size:.75rem;font-weight:600;display:inline-block}
+.card{background:#fff;border:1px solid #f1f5f9;border-radius:.75rem;padding:.75rem;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+#fiche{position:fixed;inset:0;background:#fff;overflow:auto;z-index:100;padding-top:env(safe-area-inset-top,0px)}
+@media print{body>*:not(#fiche){display:none!important}#fiche{position:static;overflow:visible}.noprint{display:none!important}body{background:#fff}:root{padding:0}}
+.printonly{display:none}@media print{.printonly{display:inline!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+<style id="pg"></style>
+</head>
+<body class="pb-12">
+<div id="login" style="display:none" class="fixed inset-0 z-[200] items-center justify-center p-6 bg-gradient-to-br from-indigo-600 to-indigo-900 overflow-auto">
+  <div class="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 space-y-4">
+    <div class="text-center"><div class="text-4xl">🎓</div><h1 id="lg-title" class="text-xl font-bold text-indigo-700"></h1><p class="text-xs text-slate-500" data-i="login_title"></p></div>
+    <input id="lg-user" class="inp" data-p="user" autocomplete="username">
+    <input id="lg-pass" type="password" class="inp" data-p="pass" autocomplete="current-password">
+    <p id="lg-err" class="text-xs text-rose-600 min-h-[1rem]"></p>
+    <button id="lg-go" class="btn w-full" data-i="sign_in"></button>
+    <div class="flex justify-between items-center text-xs text-slate-400 gap-2"><span data-i="forgot"></span><button id="lg-lang" class="btn2"></button></div>
+  </div>
+</div>
+<div id="app" style="display:none">
+<header class="bg-indigo-600 text-white shadow-md p-4 sticky top-0 z-50">
+  <div class="mx-auto max-w-md flex justify-between items-center gap-2">
+    <h1 class="text-lg font-bold">🎓 <span id="h-name"></span></h1>
+    <span id="toast" class="text-xs bg-indigo-500 px-2 py-1 rounded opacity-0 transition-opacity">ok</span>
+    <button id="lang" class="text-xs bg-white text-indigo-700 font-bold px-2 py-1 rounded"></button>
+    <button id="logout" class="text-xs bg-indigo-800 text-white px-2 py-1 rounded" data-i="logout"></button>
+  </div>
+</header>
+<nav class="bg-white shadow-sm border-b p-2 flex flex-wrap gap-y-1 justify-around text-xs font-semibold">
+  <button data-t="dashboard" class="tb" data-i="dash"></button>
+  <button data-t="courses" class="tb" data-i="courses"></button>
+  <button data-t="students" class="tb" data-i="students"></button>
+  <button data-t="expenses" class="tb" data-i="expenses"></button>
+  <button data-t="certs" class="tb" data-i="certs"></button>
+  <button data-t="settings" class="tb" data-i="settings"></button>
+</nav>
+<main class="mx-auto max-w-md p-4">
+
+<section id="tab-dashboard" class="space-y-4">
+  <div id="pw-warn" class="hidden card text-xs" style="background:#fffbeb;border-color:#fde68a;color:#92400e" data-i="pw_default"></div>
+  <div class="grid grid-cols-2 gap-3">
+    <div class="card"><p class="text-xs text-slate-500" data-i="n_students"></p><p id="s-students" class="text-2xl font-bold text-indigo-600">0</p></div>
+    <div class="card"><p class="text-xs text-slate-500" data-i="revenue"></p><p id="s-rev" class="text-xl font-bold text-emerald-600"></p></div>
+    <div class="card"><p class="text-xs text-slate-500" data-i="pending"></p><p id="s-pend" class="text-xl font-bold text-amber-600"></p></div>
+    <div class="card"><p class="text-xs text-slate-500" data-i="n_courses"></p><p id="s-courses" class="text-2xl font-bold text-slate-700">0</p></div>
+    <div class="card"><p class="text-xs text-slate-500" data-i="exp_total"></p><p id="s-exp" class="text-xl font-bold text-rose-600"></p></div>
+    <div class="card"><p class="text-xs text-slate-500" data-i="net"></p><p id="s-net" class="text-xl font-bold"></p></div>
+  </div>
+  <div class="card"><h3 class="font-bold text-sm mb-2" data-i="debtors"></h3><div id="debtors" class="space-y-2 text-sm"></div></div>
+  <div class="card"><h3 class="font-bold text-sm mb-2" data-i="bycourse"></h3><div id="bycourse" class="space-y-2 text-sm"></div></div>
+  <div class="card"><h3 class="font-bold text-sm mb-2" data-i="recent"></h3><div id="recent" class="space-y-2"></div></div>
+</section>
+
+<section id="tab-courses" class="hidden space-y-4">
+  <div class="card space-y-3">
+    <h3 id="course-title" class="font-bold text-sm"></h3>
+    <input id="c-name" class="inp" data-p="c_name">
+    <input id="c-price" type="number" min="0" inputmode="numeric" class="inp" data-p="c_price">
+    <div class="flex gap-2"><button id="c-save" class="btn flex-1"></button><button id="c-cancel" class="btn2 hidden" data-i="cancel"></button></div>
+  </div>
+  <div id="courses-list" class="space-y-2"></div>
+</section>
+
+<section id="tab-students" class="hidden space-y-4">
+  <div class="card space-y-3">
+    <h3 id="student-title" class="font-bold text-sm"></h3>
+    <div class="flex items-center gap-3">
+      <div id="st-prev" class="flex items-center justify-center bg-slate-100 text-3xl rounded-lg overflow-hidden" style="width:4.5rem;height:5.6rem"></div>
+      <div class="flex flex-col gap-1"><button type="button" id="ph-take" class="btn2" data-i="photo_take"></button><button type="button" id="ph-pick" class="btn2" data-i="photo_pick"></button><button type="button" id="st-pdel" class="btn2" data-i="photo_del" style="display:none"></button></div>
+      <input id="ph-cam" type="file" accept="image/*" capture="user" class="hidden"><input id="ph-file" type="file" accept="image/*" class="hidden">
+    </div>
+    <input id="st-name" class="inp" data-p="full_name">
+    <input id="st-phone" type="tel" inputmode="tel" class="inp" data-p="phone">
+    <input id="st-email" type="email" class="inp" data-p="email">
+    <div class="grid grid-cols-2 gap-2">
+      <div><label class="block text-xs text-slate-500 mb-1" data-i="birth"></label><input id="st-birth" type="date" class="inp"></div>
+      <div><label class="block text-xs text-slate-500 mb-1" data-i="msg_lang"></label><select id="st-ml" class="inp"><option value="fr">Français</option><option value="ar">العربية</option></select></div>
+    </div>
+    <input id="st-addr" class="inp" data-p="addr">
+    <input id="st-edu" class="inp" data-p="edu">
+    <input id="st-goal" class="inp" data-p="goal">
+    <input id="st-emerg" class="inp" data-p="emerg">
+    <select id="st-course" class="inp"></select>
+    <input id="st-first" type="number" min="0" inputmode="numeric" class="inp" data-p="first_pay">
+    <textarea id="st-notes" rows="3" class="inp" data-p="notes"></textarea>
+    <div class="flex gap-2"><button id="st-save" class="btn flex-1"></button><button id="st-cancel" class="btn2 hidden" data-i="cancel"></button></div>
+  </div>
+  <div class="flex gap-2">
+    <input id="q" class="inp" data-p="search">
+    <select id="f" class="inp" style="width:auto"><option value="" data-i="all"></option><option value="paid" data-i="paid"></option><option value="partial" data-i="partial"></option><option value="pending" data-i="pend_s"></option></select>
+  </div>
+  <button id="csv-st" class="btn2 w-full" data-i="export_csv"></button>
+  <div id="students-list" class="space-y-2"></div>
+</section>
+
+<section id="tab-expenses" class="hidden space-y-4">
+  <div class="card space-y-2">
+    <h3 class="font-bold text-sm" data-i="add_exp"></h3>
+    <div class="grid grid-cols-2 gap-2"><input id="x-date" type="date" class="inp"><select id="x-cat" class="inp"><option value="rent" data-i="cat_rent"></option><option value="ads" data-i="cat_ads"></option><option value="sup" data-i="cat_sup"></option><option value="sal" data-i="cat_sal"></option><option value="oth" data-i="cat_oth"></option></select></div>
+    <input id="x-label" class="inp" data-p="e_label">
+    <input id="x-amount" type="number" min="0" inputmode="numeric" class="inp" data-p="e_amount">
+    <button id="x-save" class="btn w-full" data-i="add"></button>
+  </div>
+  <div class="flex justify-between items-center"><b class="text-sm"><span data-i="exp_total"></span>: <span id="x-total" class="text-rose-600"></span></b><button id="csv-ex" class="btn2" data-i="export_csv"></button></div>
+  <div id="x-list" class="space-y-2"></div>
+</section>
+
+<section id="tab-certs" class="hidden space-y-4">
+  <div class="card space-y-3">
+    <h3 class="font-bold text-sm">🎓 <span data-i="certs"></span></h3>
+    <select id="ce-st" class="inp"></select>
+    <select id="ce-co" class="inp"></select>
+    <div class="grid grid-cols-2 gap-2">
+      <div><label class="block text-xs text-slate-500 mb-1" data-i="c_done"></label><input id="ce-date" type="date" class="inp"></div>
+      <div><label class="block text-xs text-slate-500 mb-1" data-i="c_type"></label><select id="ce-type" class="inp"><option value="ach" data-i="cert_ach"></option><option value="att" data-i="cert_att"></option></select></div>
+    </div>
+    <button id="ce-go" class="btn w-full" data-i="gen_cert"></button>
+  </div>
+</section>
+
+<section id="tab-settings" class="hidden space-y-4">
+  <div class="card space-y-2">
+    <h3 class="font-bold text-sm">🔒 <span data-i="sec"></span></h3>
+    <input id="sc-cur" type="password" class="inp" data-p="cur_pass" autocomplete="current-password">
+    <input id="sc-user" class="inp" data-p="new_user" autocomplete="username">
+    <input id="sc-new" type="password" class="inp" data-p="new_pass" autocomplete="new-password">
+    <input id="sc-new2" type="password" class="inp" data-p="new_pass2" autocomplete="new-password">
+    <button id="sec-save" class="btn w-full" data-i="change"></button>
+    <p class="text-xs text-slate-400" data-i="sec_note"></p>
+  </div>
+  <div class="card space-y-2">
+    <h3 class="font-bold text-sm" data-i="set_acad"></h3>
+    <input id="set-name" class="inp" data-p="a_name">
+    <input id="set-addr" class="inp" data-p="a_addr">
+    <input id="set-phone" class="inp" data-p="a_phone">
+    <input id="set-email" class="inp" data-p="a_email">
+    <input id="set-dir" class="inp" data-p="a_dir">
+    <button id="set-save" class="btn w-full" data-i="save"></button>
+  </div>
+  <div class="card space-y-2">
+    <h3 class="font-bold text-sm" data-i="backup"></h3>
+    <p class="text-xs text-slate-500" data-i="backup_help"></p>
+    <textarea id="bk" rows="6" class="inp" style="direction:ltr;font-size:.7rem"></textarea>
+    <div class="flex gap-2"><button id="bk-gen" class="btn flex-1" data-i="gen"></button><button id="bk-copy" class="btn2" data-i="copy"></button><button id="bk-load" class="btn2" data-i="restore"></button></div>
+  </div>
+</section>
+</main>
+</div>
+<div id="fiche" class="hidden"></div>
+
+<script>
+const K='academy_v2',LK='academy_lang';
+let db={courses:[],students:[],settings:{},seq:0,sessions:[],expenses:[]},editC=null,editS=null,lang='fr';
+try{lang=localStorage.getItem(LK)||'fr'}catch(e){}
+const T={
+fr:{app:'Académie Intelligente',dash:'Accueil',courses:'Formations',students:'Étudiants',settings:'Paramètres',n_students:'Total étudiants',revenue:'Encaissé',pending:'En attente',n_courses:'Formations',debtors:'Impayés (relance WhatsApp)',bycourse:'Par formation',recent:'Dernières inscriptions',none_debt:'Aucun impayé 👍',none_stud:'Aucun étudiant',none_course:'Ajoutez une première formation',st:'étudiant(s)',add_course:'Ajouter une formation',edit_course:'Modifier la formation',c_name:'Nom de la formation',c_price:'Prix (DA)',add:'Ajouter',save:'Enregistrer',cancel:'Annuler',edit:'Modifier',del:'Supprimer',new_student:'Inscrire un étudiant',edit_student:"Modifier l'étudiant",full_name:'Nom complet',phone:'Téléphone',email:'E-mail (facultatif)',birth:'Date de naissance',addr:'Adresse',msg_lang:'Langue des messages',pick_course:'Choisir la formation…',first_pay:'Premier versement (DA) — facultatif',notes:'Remarques',save_student:"Enregistrer l'étudiant",search:'🔍 Nom ou téléphone',all:'Tous',paid:'Payé',partial:'Partiel',pend_s:'En attente',pay_ph:'Montant',add_pay:'+ Versement',pay_all:'Tout payer',fiche:'Fiche',wa:'WhatsApp',paid_l:'Payé',rest_l:'Reste',course_l:'Formation',set_acad:"Informations de l'académie",a_name:"Nom de l'académie",a_addr:'Adresse',a_phone:'Téléphone',a_email:'E-mail',backup:'Sauvegarde',backup_help:"Les données sont stockées dans ce navigateur uniquement. Copiez le texte ci-dessous et conservez-le, puis collez-le pour restaurer sur n'importe quel appareil.",gen:'Générer',copy:'Copier',restore:'Restaurer',saved:'Enregistré',fill:'Complétez les champs obligatoires',amount:'Saisissez un montant',paid_ok:'Versement enregistré',has_st:'Impossible : étudiants inscrits',conf_c:'Supprimer cette formation ?',conf_s:'Supprimer cet étudiant ?',bad:'Texte invalide',restored:'Restauré',copied:'Copié',conf_r:'Remplacer les données actuelles ?',f_title:'FICHE ÉTUDIANT',f_ref:'N°',f_info:'Informations personnelles',f_train:'Formation suivie',f_fin:'Situation financière',f_pays:'Historique des versements',date:'Date',amount_l:'Montant',total:'Prix total',reg:"Inscrit le",sig_a:"Cachet et signature de l'académie",sig_s:"Signature de l'étudiant",printed:'Imprimé le',print:'🖨 Imprimer',close:'Fermer',m_rem:'Relance',m_wel:'Bienvenue',m_conf:'Confirmation',no_pays:'Aucun versement',name_l:'Nom',phone_l:'Téléphone',email_l:'E-mail',birth_l:'Naissance',addr_l:'Adresse',notes_l:'Remarques'},
+ar:{app:'الأكاديمية الذكية',dash:'الرئيسية',courses:'الدورات',students:'الطلاب',settings:'الإعدادات',n_students:'إجمالي الطلاب',revenue:'المحصّل',pending:'قيد الانتظار',n_courses:'الدورات',debtors:'المتأخرات (تذكير واتساب)',bycourse:'حسب الدورة',recent:'آخر التسجيلات',none_debt:'لا متأخرات 👍',none_stud:'لا يوجد طلاب',none_course:'أضف أول دورة',st:'طالب',add_course:'إضافة دورة',edit_course:'تعديل الدورة',c_name:'اسم الدورة',c_price:'السعر (دج)',add:'إضافة',save:'حفظ',cancel:'إلغاء',edit:'تعديل',del:'حذف',new_student:'تسجيل طالب',edit_student:'تعديل الطالب',full_name:'الاسم الكامل',phone:'الهاتف',email:'البريد الإلكتروني (اختياري)',birth:'تاريخ الميلاد',addr:'العنوان',msg_lang:'لغة الرسائل',pick_course:'اختر الدورة...',first_pay:'الدفعة الأولى (دج) — اختياري',notes:'ملاحظات',save_student:'حفظ الطالب',search:'🔍 الاسم أو الهاتف',all:'الكل',paid:'مدفوع',partial:'دفع جزئي',pend_s:'قيد الانتظار',pay_ph:'المبلغ',add_pay:'+ دفعة',pay_all:'دفع الكل',fiche:'البطاقة',wa:'واتساب',paid_l:'المدفوع',rest_l:'المتبقي',course_l:'الدورة',set_acad:'معلومات الأكاديمية',a_name:'اسم الأكاديمية',a_addr:'العنوان',a_phone:'الهاتف',a_email:'البريد الإلكتروني',backup:'نسخة احتياطية',backup_help:'البيانات محفوظة في هذا المتصفح فقط. انسخ النص أدناه واحتفظ به، ثم الصقه لاستعادته على أي جهاز.',gen:'إنشاء',copy:'نسخ',restore:'استعادة',saved:'تم الحفظ',fill:'أكمل الحقول المطلوبة',amount:'أدخل مبلغاً',paid_ok:'تم تسجيل الدفعة',has_st:'لا يمكن: يوجد طلاب مسجلون',conf_c:'حذف هذه الدورة؟',conf_s:'حذف هذا الطالب؟',bad:'نص غير صالح',restored:'تمت الاستعادة',copied:'تم النسخ',conf_r:'استبدال البيانات الحالية؟',f_title:'بطاقة الطالب',f_ref:'رقم',f_info:'المعلومات الشخصية',f_train:'الدورة المتبعة',f_fin:'الوضعية المالية',f_pays:'سجل الدفعات',date:'التاريخ',amount_l:'المبلغ',total:'السعر الإجمالي',reg:'تاريخ التسجيل',sig_a:'ختم وإمضاء الأكاديمية',sig_s:'إمضاء الطالب',printed:'طُبعت في',print:'🖨 طباعة',close:'إغلاق',m_rem:'تذكير',m_wel:'ترحيب',m_conf:'تأكيد',no_pays:'لا توجد دفعات',name_l:'الاسم',phone_l:'الهاتف',email_l:'البريد',birth_l:'الميلاد',addr_l:'العنوان',notes_l:'ملاحظات'}};
+Object.assign(T.fr,{expenses:'Dépenses',exp_total:'Dépenses',net:'Bénéfice net',export_csv:'⬇ Exporter CSV',pdf:'⬇ PDF',cert:'🎓 Certificat',add_exp:'Ajouter une dépense',e_label:'Libellé',e_amount:'Montant (DA)',cat_rent:'Loyer',cat_ads:'Publicité',cat_sup:'Fournitures',cat_sal:'Salaires',cat_oth:'Autre',none_exp:'Aucune dépense',conf_e:'Supprimer cette dépense ?',attendance:'Présence',add_session:'+ Séance',sessions:'séance(s)',present:'Présent',absent:'Absent',rate:'Taux de présence',no_sess:"Aucune séance pour cette formation — ajoutez-en depuis l'onglet Formations",del_sess:'Supprimer cette séance ?',pdf_err:'Export PDF impossible',cert_ach:'Certificat de réussite',cert_att:"Attestation d'assiduité",c_certify:"L'académie certifie que",c_ach_txt:'a suivi avec succès la formation',c_att_txt:'a suivi assidûment la formation',c_issued:'Délivré le',back:'← Fiche'});
+Object.assign(T.ar,{expenses:'المصاريف',exp_total:'المصاريف',net:'صافي الربح',export_csv:'⬇ تصدير CSV',pdf:'⬇ PDF',cert:'🎓 شهادة',add_exp:'إضافة مصروف',e_label:'البيان',e_amount:'المبلغ (دج)',cat_rent:'إيجار',cat_ads:'إعلانات',cat_sup:'مستلزمات',cat_sal:'أجور',cat_oth:'أخرى',none_exp:'لا توجد مصاريف',conf_e:'حذف هذا المصروف؟',attendance:'الحضور والغياب',add_session:'+ حصة',sessions:'حصة',present:'حاضر',absent:'غائب',rate:'نسبة الحضور',no_sess:'لا توجد حصص لهذه الدورة — أضفها من تبويب الدورات',del_sess:'حذف هذه الحصة؟',pdf_err:'تعذّر تصدير PDF',cert_ach:'شهادة إنجاز',cert_att:'شهادة حضور',c_certify:'تشهد الأكاديمية بأن',c_ach_txt:'قد أتمّ بنجاح الدورة التدريبية',c_att_txt:'قد واظب على حضور الدورة التدريبية',c_issued:'حُرّرت في',back:'← البطاقة'});
+Object.assign(T.fr,{notes:'Notes détaillées / suivi pédagogique',edu:'Parcours scolaire et formation',goal:'Objectif professionnel',emerg:"Contact d'urgence (nom et téléphone)",photo_take:'📷 Prendre une photo',photo_pick:'🖼 Choisir un fichier',photo_del:'Retirer la photo',call:'Appeler',call_em:'Urgence',m_abs:'Absence',m_cert:'Certificat prêt',m_chat:'Chat libre',login_title:'Connexion',user:"Nom d'utilisateur",pass:'Mot de passe',sign_in:'Se connecter',bad_login:'Identifiants incorrects',locked:'Trop d\'essais : réessayez dans 30 s',logout:'Déconnexion',forgot:'Mot de passe oublié ? Effacez les données du site (les données locales seront perdues).',sec:'Sécurité',cur_pass:'Mot de passe actuel',new_user:"Nouveau nom d'utilisateur (facultatif)",new_pass:'Nouveau mot de passe (6 caractères min.)',new_pass2:'Confirmer le mot de passe',change:'Mettre à jour',pw_changed:'Identifiants mis à jour',pw_short:'6 caractères minimum',pw_mismatch:'Les mots de passe diffèrent',pw_wrong:'Mot de passe actuel incorrect',pw_default:"⚠ Identifiants par défaut (admin / admin) : changez-les dans Paramètres → Sécurité.",sec_note:"Protection d'accès locale : elle ne chiffre pas les données stockées. Faites des sauvegardes régulières.",quota:'Stockage plein : retirez des photos ou sauvegardez',certs:'Certificats',gen_cert:'Générer le certificat',c_done:'Formation terminée le',c_type:'Type',a_dir:'Nom du directeur / signataire',pick_student:'Choisir un étudiant…',sig_dir:'Le Directeur'});
+Object.assign(T.ar,{notes:'ملاحظات مفصّلة / متابعة بيداغوجية',edu:'المسار الدراسي والتكويني',goal:'الهدف المهني',emerg:'جهة اتصال للطوارئ (الاسم والهاتف)',photo_take:'📷 التقاط صورة',photo_pick:'🖼 اختيار ملف',photo_del:'إزالة الصورة',call:'اتصال',call_em:'طوارئ',m_abs:'غياب',m_cert:'الشهادة جاهزة',m_chat:'محادثة حرة',login_title:'تسجيل الدخول',user:'اسم المستخدم',pass:'كلمة المرور',sign_in:'دخول',bad_login:'بيانات الدخول غير صحيحة',locked:'محاولات كثيرة: أعد المحاولة بعد 30 ثانية',logout:'خروج',forgot:'نسيت كلمة المرور؟ امسح بيانات الموقع (ستفقد البيانات المحلية).',sec:'الأمان',cur_pass:'كلمة المرور الحالية',new_user:'اسم مستخدم جديد (اختياري)',new_pass:'كلمة مرور جديدة (6 أحرف على الأقل)',new_pass2:'تأكيد كلمة المرور',change:'تحديث',pw_changed:'تم تحديث بيانات الدخول',pw_short:'6 أحرف على الأقل',pw_mismatch:'كلمتا المرور غير متطابقتين',pw_wrong:'كلمة المرور الحالية خاطئة',pw_default:'⚠ بيانات الدخول الافتراضية (admin / admin): غيّرها من الإعدادات ← الأمان.',sec_note:'حماية دخول محلية: لا تقوم بتشفير البيانات المخزنة. خذ نسخاً احتياطية دورياً.',quota:'التخزين ممتلئ: احذف بعض الصور أو احفظ نسخة احتياطية',certs:'الشهادات',gen_cert:'إنشاء الشهادة',c_done:'تاريخ إنهاء الدورة',c_type:'النوع',a_dir:'اسم المدير / الموقّع',pick_student:'اختر طالباً…',sig_dir:'المدير'});
+const t=k=>T[lang][k]??T.fr[k]??k;
+const M={
+fr:{rem:(s,c,d,a)=>`Bonjour ${s}, nous vous rappelons qu'un solde de ${d} reste à régler pour la formation « ${c} ». Merci. — ${a}`,wel:(s,c,d,a)=>`Bonjour ${s}, bienvenue à ${a} ! Votre inscription à la formation « ${c} » est bien enregistrée.`,conf:(s,c,d,a,p)=>`Bonjour ${s}, nous confirmons la réception de ${p} pour « ${c} ». Solde restant : ${d}. Merci. — ${a}`},
+ar:{rem:(s,c,d,a)=>`السلام عليكم ${s}، نذكّركم بأن المبلغ المتبقي لدورة «${c}» هو ${d}. شكراً. — ${a}`,wel:(s,c,d,a)=>`السلام عليكم ${s}، مرحباً بكم في ${a}! تم تسجيلكم في دورة «${c}» بنجاح.`,conf:(s,c,d,a,p)=>`السلام عليكم ${s}، نؤكد استلام ${p} لدورة «${c}». المتبقي: ${d}. شكراً. — ${a}`}};
+Object.assign(M.fr,{abs:(s,c,d,a)=>`Bonjour ${s}, nous avons remarqué votre absence à la dernière séance de « ${c} ». Tout va bien ? N'hésitez pas à nous contacter. — ${a}`,cert:(s,c,d,a)=>`Bonjour ${s}, félicitations ! Votre certificat pour la formation « ${c} » est prêt. Vous pouvez le retirer auprès de l'académie. — ${a}`,chat:()=>''});
+Object.assign(M.ar,{abs:(s,c,d,a)=>`السلام عليكم ${s}، لاحظنا غيابكم عن آخر حصة في دورة «${c}». نأمل أن يكون كل شيء بخير، لا تترددوا في التواصل معنا. — ${a}`,cert:(s,c,d,a)=>`السلام عليكم ${s}، مبارك! شهادتكم في دورة «${c}» جاهزة، يمكنكم استلامها من الأكاديمية. — ${a}`,chat:()=>''});
+const $=id=>document.getElementById(id);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=(n,l=lang)=>(Number(n)||0).toLocaleString('fr-FR')+(l==='ar'?' دج':' DA');
+const today=()=>new Date().toISOString().slice(0,10);
+const dfmt=d=>/^\d{4}-\d\d-\d\d/.test(d||'')?new Date(d).toLocaleDateString(lang==='ar'?'ar-DZ':'fr-FR'):(d||'');
+const course=id=>db.courses.find(c=>c.id===id);
+const paidOf=s=>(s.pays||[]).reduce((x,p)=>x+p.a,0);
+const dueOf=s=>Math.max((course(s.courseId)?.price||0)-paidOf(s),0);
+const stOf=s=>{const p=paidOf(s);return dueOf(s)===0&&p>0?'paid':p>0?'partial':'pending'};
+const acad=()=>db.settings.name||T[lang].app;
+
+function load(){
+  try{
+    const raw=localStorage.getItem(K);
+    if(raw){db=Object.assign(db,JSON.parse(raw));return}
+    const oc=JSON.parse(localStorage.getItem('academy_courses')||'null'),os=JSON.parse(localStorage.getItem('academy_students')||'null');
+    if(oc)db.courses=oc.map(c=>({id:uid(),name:c.name,price:c.price}));
+    if(os)db.students=os.map(s=>{const c=db.courses.find(x=>x.name===s.course);return{id:uid(),name:s.name,phone:s.phone,courseId:c?c.id:'',status:s.status==='مدفوع'?'paid':'pending',date:s.date||''}});
+  }catch(e){}
+  if(!db.courses.length&&!db.students.length)db.courses=[{id:uid(),name:'التسيير الإداري الرقمي',price:15000},{id:uid(),name:'أتمتة العمليات والذكاء الاصطناعي',price:20000}];
+}
+function norm(){
+  db.settings=db.settings||{};db.seq=db.seq||0;db.sessions=db.sessions||[];db.expenses=db.expenses||[];
+  db.students.forEach(s=>{
+    if(!Array.isArray(s.pays)){const c=course(s.courseId);s.pays=(s.status==='paid'&&c)?[{d:s.date,a:c.price}]:[];delete s.status}
+    if(!s.ref)s.ref='ET-'+String(++db.seq).padStart(4,'0');
+    if(!s.ml)s.ml='fr';s.att=s.att||{};
+  });
+}
+function save(){try{localStorage.setItem(K,JSON.stringify(db))}catch(e){toast('quota')}render()}
+function toast(k){const e=$('toast');e.textContent=t(k);e.style.opacity=1;setTimeout(()=>e.style.opacity=0,1600)}
+
+function applyLang(){
+  document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr';
+  document.querySelectorAll('[data-i]').forEach(e=>e.textContent=t(e.dataset.i));
+  document.querySelectorAll('[data-p]').forEach(e=>e.placeholder=t(e.dataset.p));
+  $('h-name').textContent=acad();$('lg-title').textContent=acad();document.title=acad();
+  $('lang').textContent=$('lg-lang').textContent=lang==='fr'?'العربية':'Français';
+  $('course-title').textContent=t(editC?'edit_course':'add_course');
+  $('c-save').textContent=t(editC?'save':'add');
+  $('student-title').textContent=t(editS?'edit_student':'new_student');
+  $('st-save').textContent=t(editS?'save':'save_student');
+}
+$('lang').onclick=()=>{lang=lang==='fr'?'ar':'fr';try{localStorage.setItem(LK,lang)}catch(e){}render();if(!$('fiche').classList.contains('hidden')&&window._re)window._re()};
+
+function tab(x){
+  ['dashboard','courses','students','expenses','certs','settings'].forEach(k=>$('tab-'+k).classList.toggle('hidden',k!==x));
+  document.querySelectorAll('.tb').forEach(b=>b.className='tb pb-1 '+(b.dataset.t===x?'text-indigo-600 border-b-2 border-indigo-600':'text-slate-500'));
+}
+document.querySelectorAll('.tb').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+
+/* formations */
+$('c-save').onclick=()=>{
+  const name=$('c-name').value.trim(),price=parseFloat($('c-price').value);
+  if(!name||isNaN(price)||price<0){toast('fill');return}
+  if(editC){const c=course(editC);c.name=name;c.price=price}else db.courses.push({id:uid(),name,price});
+  resetC();save();toast('saved');
+};
+function resetC(){editC=null;$('c-name').value='';$('c-price').value='';$('c-cancel').classList.add('hidden')}
+$('c-cancel').onclick=()=>{resetC();render()};
+function editCourse(id){const c=course(id);editC=id;$('c-name').value=c.name;$('c-price').value=c.price;$('c-cancel').classList.remove('hidden');render();scrollTo(0,0)}
+function delCourse(id){
+  if(db.students.some(s=>s.courseId===id)){toast('has_st');return}
+  if(confirm(t('conf_c'))){db.courses=db.courses.filter(c=>c.id!==id);db.sessions=db.sessions.filter(x=>x.courseId!==id);save()}
+}
+
+/* photo */
+let photo='';
+function setPrev(){$('st-prev').innerHTML=photo?`<img src="${esc(photo)}" style="width:100%;height:100%;object-fit:cover">`:'👤';$('st-pdel').style.display=photo?'inline-block':'none'}
+function readPhoto(f){
+  if(!f)return;const r=new FileReader();
+  r.onload=()=>{const img=new Image();img.onload=()=>{
+    const W=240,H=300,k=Math.max(W/img.width,H/img.height),c=document.createElement('canvas');c.width=W;c.height=H;
+    c.getContext('2d').drawImage(img,(W-img.width*k)/2,(H-img.height*k)/2,img.width*k,img.height*k);
+    photo=c.toDataURL('image/jpeg',.8);setPrev()};img.src=r.result};
+  r.readAsDataURL(f);
+}
+$('ph-take').onclick=()=>$('ph-cam').click();$('ph-pick').onclick=()=>$('ph-file').click();
+$('ph-cam').onchange=$('ph-file').onchange=e=>{readPhoto(e.target.files[0]);e.target.value=''};
+$('st-pdel').onclick=()=>{photo='';setPrev()};
+
+/* étudiants */
+const SF=['name','phone','email','birth','addr','edu','goal','emerg','ml','course','first','notes'];
+$('st-save').onclick=()=>{
+  const v=k=>$('st-'+k).value.trim();
+  if(!v('name')||!v('phone')||!v('course')){toast('fill');return}
+  const o={name:v('name'),phone:v('phone'),email:v('email'),birth:v('birth'),addr:v('addr'),ml:v('ml'),courseId:v('course'),notes:v('notes'),edu:v('edu'),goal:v('goal'),emerg:v('emerg'),photo};
+  if(editS)Object.assign(db.students.find(s=>s.id===editS),o);
+  else{const f=Math.min(parseFloat(v('first'))||0,course(o.courseId).price);db.seq++;db.students.push({id:uid(),ref:'ET-'+String(db.seq).padStart(4,'0'),pays:f>0?[{d:today(),a:f}]:[],date:today(),...o})}
+  resetS();save();toast('saved');
+};
+function resetS(){editS=null;photo='';SF.forEach(k=>$('st-'+k).value='');$('st-ml').value=lang;$('st-first').disabled=false;$('st-cancel').classList.add('hidden');setPrev()}
+$('st-cancel').onclick=()=>{resetS();render()};
+function editStudent(id){
+  const s=db.students.find(x=>x.id===id);editS=id;
+  $('st-name').value=s.name;$('st-phone').value=s.phone;$('st-email').value=s.email||'';$('st-birth').value=s.birth||'';$('st-addr').value=s.addr||'';$('st-ml').value=s.ml;$('st-course').value=s.courseId;$('st-notes').value=s.notes||'';$('st-edu').value=s.edu||'';$('st-goal').value=s.goal||'';$('st-emerg').value=s.emerg||'';photo=s.photo||'';setPrev();$('st-first').value='';$('st-first').disabled=true;
+  $('st-cancel').classList.remove('hidden');render();$('st-course').value=s.courseId;scrollTo(0,0);
+}
+function delStudent(id){if(confirm(t('conf_s'))){db.students=db.students.filter(s=>s.id!==id);save()}}
+function addPay(id){const s=db.students.find(x=>x.id===id),a=Math.min(parseFloat($('pay-'+id).value)||0,dueOf(s));if(!(a>0)){toast('amount');return}s.pays.push({d:today(),a});save();toast('paid_ok')}
+function payAll(id){const s=db.students.find(x=>x.id===id),a=dueOf(s);if(a>0){s.pays.push({d:today(),a});save();toast('paid_ok')}}
+$('q').oninput=render;$('f').onchange=render;
+
+/* messages WhatsApp */
+const telOf=s=>String(s.phone).replace(/[^\d+]/g,'');
+function wa(s,type){
+  const l=s.ml||'fr',c=course(s.courseId),last=s.pays[s.pays.length-1];
+  let p=String(s.phone).replace(/\D/g,'');if(p.startsWith('00'))p=p.slice(2);else if(p.startsWith('0'))p='213'+p.slice(1);
+  const m=M[l][type](s.name,c?c.name:'',fmt(dueOf(s),l),db.settings.name||T[l].app,last?fmt(last.a,l):'');
+  return 'https://wa.me/'+p+(m?'?text='+encodeURIComponent(m):'');
+}
+function waLinks(s,flat){
+  const L=[['wel','m_wel',1],['rem','m_rem',dueOf(s)>0],['conf','m_conf',s.pays.length>0],['abs','m_abs',1],['cert','m_cert',1],['chat','m_chat',1]];
+  const h=L.filter(x=>x[2]).map(x=>`<a class="btn2" target="_blank" rel="noopener" href="${wa(s,x[0])}">${t(x[1])}</a>`).join('');
+  return flat?h:`<details class="w-full"><summary class="btn2 cursor-pointer">💬 ${t('wa')}</summary><div class="flex flex-wrap gap-1 pt-1">${h}</div></details>`;
+}
+
+/* présence */
+const att=s=>s.att||(s.att={});
+const sessOf=s=>db.sessions.filter(x=>x.courseId===s.courseId).sort((a,b)=>a.date<b.date?-1:1);
+const rateOf=s=>{const l=sessOf(s).filter(x=>att(s)[x.id]);return l.length?Math.round(l.filter(x=>att(s)[x.id]==='p').length/l.length*100):null};
+function addSession(cid){db.sessions.push({id:uid(),courseId:cid,date:$('sd-'+cid).value||today()});save();toast('saved')}
+function mark(sid,xid,v){const a=att(db.students.find(x=>x.id===sid));a[xid]===v?delete a[xid]:a[xid]=v;save();openFiche(sid,true)}
+function delSession(sid,xid){if(confirm(t('del_sess'))){db.sessions=db.sessions.filter(x=>x.id!==xid);db.students.forEach(s=>delete att(s)[xid]);save();openFiche(sid,true)}}
+
+/* dépenses + exports */
+$('x-save').onclick=()=>{const label=$('x-label').value.trim(),amount=parseFloat($('x-amount').value);if(!label||!(amount>0)){toast('fill');return}db.expenses.push({id:uid(),date:$('x-date').value||today(),cat:$('x-cat').value,label,amount});$('x-label').value='';$('x-amount').value='';save();toast('saved')};
+function delExp(id){if(confirm(t('conf_e'))){db.expenses=db.expenses.filter(e=>e.id!==id);save()}}
+function renderCe(){
+  const sv=$('ce-st').value,cv=$('ce-co').value;
+  $('ce-st').innerHTML=`<option value="">${t('pick_student')}</option>`+db.students.map(x=>`<option value="${x.id}">${esc(x.name)} (${esc(x.ref)})</option>`).join('');
+  $('ce-co').innerHTML=db.courses.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  $('ce-st').value=sv;$('ce-co').value=cv||(db.courses[0]?db.courses[0].id:'');
+}
+$('ce-st').onchange=()=>{const x=db.students.find(y=>y.id===$('ce-st').value);if(x)$('ce-co').value=x.courseId};
+$('ce-go').onclick=()=>{const id=$('ce-st').value;if(!id){toast('pick_student');return}window._co={courseId:$('ce-co').value,date:$('ce-date').value||today()};openCert(id,$('ce-type').value)};
+function renderX(){
+  $('pw-warn').classList.toggle('hidden',!(getAuth()||{}).def);
+  const te=db.expenses.reduce((x,e)=>x+e.amount,0),net=db.students.reduce((x,s)=>x+paidOf(s),0)-te;
+  $('s-exp').textContent=fmt(te);$('x-total').textContent=fmt(te);
+  const n=$('s-net');n.textContent=fmt(net);n.className='text-xl font-bold '+(net<0?'text-rose-600':'text-emerald-700');
+  $('x-list').innerHTML=db.expenses.slice().sort((a,b)=>a.date<b.date?1:-1).map(e=>`<div class="card flex justify-between items-center text-sm"><div><p class="font-bold">${esc(e.label)}</p><p class="text-xs text-slate-500">${esc(dfmt(e.date))} · ${t('cat_'+e.cat)}</p></div><div class="flex items-center gap-2"><b class="text-rose-600">${fmt(e.amount)}</b><button class="btn2" style="color:#dc2626" onclick="delExp('${e.id}')">${t('del')}</button></div></div>`).join('')||`<p class="text-slate-400 text-center py-4 text-sm">${t('none_exp')}</p>`;
+}
+async function saveFile(name,data){
+  try{
+    const d=typeof claude!=='undefined'?await claude.use('downloads'):null;
+    if(d)await d.save({filename:name,data});
+    else{const a=document.createElement('a');a.href=URL.createObjectURL(data instanceof Blob?data:new Blob([data]));a.download=name;a.click()}
+  }catch(e){if(!(e&&e.code==='declined'))toast('pdf_err')}
+}
+const csv=rows=>'\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
+$('csv-st').onclick=()=>{
+  const H=lang==='ar'?['المرجع','الاسم','الهاتف','البريد','الدورة','السعر','المدفوع','المتبقي','الحالة','الحضور','تاريخ التسجيل']:['Réf','Nom','Téléphone','E-mail','Formation','Prix (DA)','Payé (DA)','Reste (DA)','Statut','Présence','Inscrit le'];
+  saveFile('etudiants_'+today()+'.csv',csv([H,...db.students.map(s=>{const c=course(s.courseId),r=rateOf(s),x=stOf(s);return[s.ref,s.name,s.phone,s.email||'',c?c.name:'',c?c.price:0,paidOf(s),dueOf(s),t(x==='paid'?'paid':x==='partial'?'partial':'pend_s'),r==null?'':r+'%',s.date]})]));
+};
+$('csv-ex').onclick=()=>{
+  const H=lang==='ar'?['التاريخ','الفئة','البيان','المبلغ']:['Date','Catégorie','Libellé','Montant (DA)'];
+  saveFile('depenses_'+today()+'.csv',csv([H,...db.expenses.map(e=>[e.date,t('cat_'+e.cat),e.label,e.amount])]));
+};
+
+/* documents imprimables : fiche, certificat */
+function shell(body,tools,land){
+  window._pg=land?'landscape':'portrait';
+  $('pg').textContent='@page{size:A4 '+window._pg+';margin:10mm}';
+  $('fiche').innerHTML=`<div class="noprint sticky top-0 bg-slate-100 border-b p-2 flex flex-wrap gap-2 items-center justify-between" style="z-index:5"><div class="flex gap-2 flex-wrap"><button class="btn" onclick="window.print()">${t('print')}</button><button class="btn" onclick="exportPdf()">${t('pdf')}</button><button class="btn2" onclick="closeFiche()">${t('close')}</button></div><div class="flex gap-1 flex-wrap">${tools}</div></div><div id="doc" class="${land?'p-3':'p-6'} mx-auto" style="max-width:${land?'62rem':'42rem'};background:#fff">${body}</div>`;
+  $('fiche').classList.remove('hidden');
+}
+async function exportPdf(){
+  const land=window._pg==='landscape',name=(window._fn||'document')+'.pdf';
+  $('fiche').scrollTop=0;
+  try{
+    const blob=await html2pdf().set({margin:land?4:8,image:{type:'jpeg',quality:.95},html2canvas:{scale:2,useCORS:true,scrollY:0},jsPDF:{unit:'mm',format:'a4',orientation:land?'landscape':'portrait'}}).from($('doc')).outputPdf('blob');
+    await saveFile(name,blob);
+  }catch(e){toast('pdf_err')}
+}
+function openFiche(id,keep){
+  const y=$('fiche').scrollTop;
+  const s=db.students.find(x=>x.id===id),c=course(s.courseId),a=db.settings,pd=paidOf(s),rest=dueOf(s),r=rateOf(s),ss=sessOf(s);
+  window._re=()=>openFiche(id);window._fn='fiche_'+s.ref;
+  const row=(k,v)=>v?`<tr><td class="py-1 pe-4 text-slate-500 align-top" style="width:9rem">${t(k)}</td><td class="font-semibold" style="white-space:pre-wrap">${esc(v)}</td></tr>`:'';
+  let run=0;
+  const pays=s.pays.length?s.pays.map(p=>{run+=p.a;return `<tr class="border-t"><td class="py-1">${esc(dfmt(p.d))}</td><td>${fmt(p.a)}</td><td class="text-slate-500">${fmt(run)}</td></tr>`}).join(''):`<tr><td colspan="3" class="py-2 text-slate-400">${t('no_pays')}</td></tr>`;
+  const sess=ss.length?ss.map(x=>{const v=att(s)[x.id];return `<tr class="border-t"><td class="py-1">${esc(dfmt(x.date))}</td><td><span class="printonly">${v==='p'?'✓ '+t('present'):v==='a'?'✗ '+t('absent'):'—'}</span><span class="noprint inline-flex gap-1"><button class="btn2" style="${v==='p'?'background:#10b981;color:#fff':''}" onclick="mark('${s.id}','${x.id}','p')">✓ ${t('present')}</button><button class="btn2" style="${v==='a'?'background:#ef4444;color:#fff':''}" onclick="mark('${s.id}','${x.id}','a')">✗ ${t('absent')}</button><button class="btn2" onclick="delSession('${s.id}','${x.id}')">🗑</button></span></td></tr>`}).join(''):`<tr><td colspan="2" class="py-2 text-slate-400 text-xs">${t('no_sess')}</td></tr>`;
+  const btn='class="btn2" target="_blank" rel="noopener"';
+  const em=(s.emerg||'').match(/\+?\d[\d\s.\-]{7,}\d/);
+  const tools=`<button class="btn2" onclick="window._co=null;openCert('${s.id}','ach')">${t('cert')}</button><a class="btn2" href="tel:${telOf(s)}">📞 ${t('call')}</a>${em?`<a class="btn2" href="tel:${em[0].replace(/[^\d+]/g,'')}">🚨 ${t('call_em')}</a>`:''}${waLinks(s,true)}`;
+  const body=`
+    <div class="flex justify-between items-start border-b-4 border-indigo-600 pb-3 mb-5 gap-3">
+      <div><h2 class="text-2xl font-bold text-indigo-700">${esc(acad())}</h2>
+      <p class="text-xs text-slate-500">${[a.addr,a.phone,a.email].filter(Boolean).map(esc).join(' · ')}</p></div>
+      <div class="text-end"><p class="font-bold">${t('f_title')}</p><p class="text-sm text-slate-500">${t('f_ref')} ${esc(s.ref)}</p></div>
+    </div>
+    <h3 class="font-bold text-indigo-700 mb-1">${t('f_info')}</h3>
+    <div class="flex gap-4 items-start mb-5"><table class="text-sm flex-1">${row('name_l',s.name)}${row('phone_l',s.phone)}${row('email_l',s.email)}${row('birth_l',dfmt(s.birth))}${row('addr_l',s.addr)}${row('reg',dfmt(s.date))}${row('edu',s.edu)}${row('goal',s.goal)}${row('emerg',s.emerg)}${row('notes_l',s.notes)}</table>${s.photo?`<img src="${esc(s.photo)}" style="width:6rem;height:7.5rem;object-fit:cover;border:2px solid #c7d2fe;border-radius:.4rem;flex:none">`:''}</div>
+    <h3 class="font-bold text-indigo-700 mb-1">${t('f_train')}</h3>
+    <table class="text-sm mb-5">${row('course_l',c?c.name:'—')}</table>
+    <h3 class="font-bold text-indigo-700 mb-1">${t('f_fin')}</h3>
+    <table class="text-sm mb-3">${row('total',fmt(c?c.price:0))}${row('paid_l',fmt(pd))}${row('rest_l',fmt(rest))}</table>
+    <h3 class="font-bold text-indigo-700 mb-1">${t('f_pays')}</h3>
+    <table class="text-sm w-full mb-5"><thead><tr class="text-slate-500"><th class="text-start font-semibold">${t('date')}</th><th class="text-start font-semibold">${t('amount_l')}</th><th class="text-start font-semibold">${t('paid_l')} Σ</th></tr></thead><tbody>${pays}</tbody></table>
+    <h3 class="font-bold text-indigo-700 mb-1">${t('attendance')} — ${t('rate')}: ${r==null?'—':r+'%'}</h3>
+    <div class="h-2 bg-slate-100 rounded mb-2"><div class="h-2 rounded bg-emerald-500" style="width:${r||0}%"></div></div>
+    <table class="text-sm w-full mb-8"><tbody>${sess}</tbody></table>
+    <div class="grid grid-cols-2 gap-6 text-xs text-slate-500 mb-6"><div class="border rounded p-2" style="height:6rem">${t('sig_a')}</div><div class="border rounded p-2" style="height:6rem">${t('sig_s')}</div></div>
+    <p class="text-xs text-slate-400">${t('printed')} ${dfmt(today())}</p>`;
+  shell(body,tools,false);
+  $('fiche').scrollTop=keep?y:0;
+}
+function openCert(id,type){
+  const s=db.students.find(x=>x.id===id),co=window._co||{},c=course(co.courseId||s.courseId),dt=co.date||today(),a=db.settings;
+  const r=(!co.courseId||co.courseId===s.courseId)?rateOf(s):null,G='#b45309';
+  window._re=()=>openCert(id,type);window._fn='certificat_'+s.ref;
+  const tools=`<button class="btn2" onclick="openFiche('${s.id}')">${t('back')}</button><button class="btn2" style="${type==='ach'?'background:#4f46e5;color:#fff':''}" onclick="openCert('${s.id}','ach')">${t('cert_ach')}</button><button class="btn2" style="${type==='att'?'background:#4f46e5;color:#fff':''}" onclick="openCert('${s.id}','att')">${t('cert_att')}</button>`;
+  const ph=s.photo?`<img src="${esc(s.photo)}" style="width:6.5rem;height:8.1rem;object-fit:cover;border:3px solid ${G};border-radius:.3rem">`:'';
+  const line=txt=>`<div style="width:14rem;text-align:center"><div style="height:3rem"></div><div style="border-top:1.5px solid #334155;padding-top:.3rem">${txt}</div></div>`;
+  const body=`<div style="box-sizing:border-box;border:10px double #4f46e5;padding:.6rem;background:#fff">
+  <div style="box-sizing:border-box;border:2px solid ${G};padding:1.2rem 1.6rem;min-height:31rem;display:flex;flex-direction:column;justify-content:space-between;text-align:center;font-family:Georgia,'Times New Roman',Cairo,serif">
+    <div><div style="font-size:1.7rem;font-weight:700;color:#3730a3;letter-spacing:.04em">${esc(acad())}</div>
+      <div style="font-size:.75rem;color:#64748b">${[a.addr,a.phone,a.email].filter(Boolean).map(esc).join(' · ')}</div>
+      <div style="color:${G};letter-spacing:.5em;margin-top:.2rem">✦ ✦ ✦</div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem">
+      <div style="width:6.5rem;flex:none">${ph}</div>
+      <div style="flex:1">
+        <h1 style="font-size:2.3rem;font-weight:700;color:#4f46e5;letter-spacing:.04em">${t(type==='ach'?'cert_ach':'cert_att')}</h1>
+        <p style="margin-top:1rem;color:#475569">${t('c_certify')}</p>
+        <p style="font-size:2.1rem;font-weight:700;margin:.5rem 0;border-bottom:2px solid #c7d2fe;display:inline-block;padding:0 1.5rem">${esc(s.name)}</p>
+        <p style="color:#475569">${t(type==='ach'?'c_ach_txt':'c_att_txt')}</p>
+        <p style="font-size:1.5rem;font-weight:600;margin:.3rem 0">« ${esc(c?c.name:'')} »</p>
+        <p style="color:#475569;font-size:.9rem">${t('c_done')} ${esc(dfmt(dt))}${type==='att'&&r!=null?` — ${t('rate')}: <b>${r}%</b>`:''}</p></div>
+      <div style="width:6.5rem;flex:none;display:flex;justify-content:center"><div style="width:5.2rem;height:5.2rem;border:3px double ${G};border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:${G};font-size:.75rem;font-weight:700"><span style="font-size:1.4rem">✦</span>${esc(dt.slice(0,4))}</div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;font-size:.8rem;color:#475569">
+      ${line((a.dir?esc(a.dir)+'<br>':'')+t('sig_dir'))}
+      <div>${t('c_issued')} ${esc(dfmt(today()))}<br>${t('f_ref')} CERT-${esc(s.ref)}</div>
+      ${line(t('sig_a'))}
+    </div>
+  </div></div>`;
+  shell(body,tools,true);
+  $('fiche').scrollTop=0;
+}
+function closeFiche(){$('fiche').classList.add('hidden');window._re=null}
+
+function av(s){const sz='width:2.6rem;height:2.6rem;flex:none';return s.photo?`<img src="${esc(s.photo)}" class="rounded-full object-cover" style="${sz}">`:`<span class="rounded-full bg-indigo-100 text-indigo-700 inline-flex items-center justify-center font-bold" style="${sz}">${esc((s.name||'?').trim().charAt(0).toUpperCase())}</span>`}
+function card(s,actions){
+  const c=course(s.courseId),stt=stOf(s),rest=dueOf(s);
+  const bc={paid:'bg-emerald-100 text-emerald-700',partial:'bg-sky-100 text-sky-700',pending:'bg-amber-100 text-amber-700'}[stt];
+  const tel=String(s.phone).replace(/[^\d+]/g,'');
+  return `<div class="card text-sm space-y-1">
+    <div class="flex justify-between font-bold gap-2"><span class="flex items-center gap-2">${av(s)}<span>${esc(s.name)} <span class="text-xs font-normal text-slate-400">${esc(s.ref)}</span></span></span><span class="text-xs px-2 py-0.5 rounded-full ${bc}">${t(stt==='paid'?'paid':stt==='partial'?'partial':'pend_s')}</span></div>
+    <p class="text-xs text-slate-500">${t('course_l')}: ${c?esc(c.name)+' — '+fmt(c.price):'—'}</p>
+    <p class="text-xs">${t('paid_l')}: <b class="text-emerald-700">${fmt(paidOf(s))}</b> · ${t('rest_l')}: <b class="${rest?'text-amber-700':'text-slate-400'}">${fmt(rest)}</b></p>
+    ${rateOf(s)!=null?`<p class="text-xs text-slate-500">${t('rate')}: <b>${rateOf(s)}%</b></p>`:''}<p class="text-xs text-slate-400"><a href="tel:${tel}" class="text-indigo-600" dir="ltr">${esc(s.phone)}</a> · ${esc(dfmt(s.date))}</p>${actions||''}</div>`;
+}
+
+function render(){
+  applyLang();renderX();renderCe();
+  const tot=db.students.reduce((x,s)=>x+paidOf(s),0),due=db.students.reduce((x,s)=>x+dueOf(s),0);
+  $('s-students').textContent=db.students.length;$('s-rev').textContent=fmt(tot);$('s-pend').textContent=fmt(due);$('s-courses').textContent=db.courses.length;
+  $('debtors').innerHTML=db.students.filter(s=>dueOf(s)>0).sort((a,b)=>dueOf(b)-dueOf(a)).map(s=>`<div class="flex justify-between items-center"><span>${esc(s.name)}<br><b class="text-xs text-amber-700">${fmt(dueOf(s))}</b></span><span class="flex gap-1"><button class="btn2" onclick="openFiche('${s.id}')">${t('fiche')}</button><a class="btn2" href="tel:${telOf(s)}">📞</a><a class="btn2" target="_blank" rel="noopener" href="${wa(s,'rem')}">${t('wa')}</a></span></div>`).join('')||`<p class="text-slate-400 text-center text-sm">${t('none_debt')}</p>`;
+  $('bycourse').innerHTML=db.courses.map(c=>{const l=db.students.filter(s=>s.courseId===c.id),tt=l.length*c.price,p=l.reduce((x,s)=>x+paidOf(s),0);return `<div><div class="flex justify-between"><span>${esc(c.name)}</span><span class="text-xs text-slate-500">${l.length} ${t('st')}</span></div><div class="h-2 bg-slate-100 rounded mt-1"><div class="h-2 bg-emerald-500 rounded" style="width:${tt?Math.round(p/tt*100):0}%"></div></div><p class="text-xs text-slate-500">${fmt(p)} / ${fmt(tt)}</p></div>`}).join('')||'<p class="text-slate-400 text-center text-sm">—</p>';
+  const rev=db.students.slice().reverse();
+  $('recent').innerHTML=rev.slice(0,3).map(s=>card(s)).join('')||`<p class="text-slate-400 text-center py-2 text-sm">${t('none_stud')}</p>`;
+  $('courses-list').innerHTML=db.courses.map(c=>{const n=db.students.filter(s=>s.courseId===c.id).length;return `<div class="card flex flex-wrap justify-between items-center text-sm"><div><p class="font-bold">${esc(c.name)}</p><p class="text-xs text-slate-500">${fmt(c.price)} · ${n} ${t('st')}</p></div><div class="flex gap-1"><button class="btn2" onclick="editCourse('${c.id}')">${t('edit')}</button><button class="btn2" style="color:#dc2626" onclick="delCourse('${c.id}')">${t('del')}</button></div><div class="w-full flex gap-1 items-center pt-2 mt-2 border-t"><span class="text-xs text-slate-500">${db.sessions.filter(x=>x.courseId===c.id).length} ${t('sessions')}</span><input type="date" id="sd-${c.id}" class="inp" style="width:auto;padding:.2rem" value="${today()}"><button class="btn2" onclick="addSession('${c.id}')">${t('add_session')}</button></div></div>`}).join('')||`<p class="text-slate-400 text-center py-4 text-sm">${t('none_course')}</p>`;
+  const cur=$('st-course').value;
+  $('st-course').innerHTML=`<option value="">${t('pick_course')}</option>`+db.courses.map(c=>`<option value="${c.id}">${esc(c.name)} (${fmt(c.price)})</option>`).join('');
+  $('st-course').value=cur;
+  const q=$('q').value.trim().toLowerCase(),f=$('f').value;
+  const list=rev.filter(s=>(!f||stOf(s)===f)&&(!q||s.name.toLowerCase().includes(q)||String(s.phone).includes(q)||s.ref.toLowerCase().includes(q)));
+  $('students-list').innerHTML=list.map(s=>card(s,`<div class="flex flex-wrap gap-1 pt-1 items-center"><a class="btn2" href="tel:${telOf(s)}">📞 ${t('call')}</a>${waLinks(s)}${dueOf(s)>0?`<input id="pay-${s.id}" type="number" min="0" inputmode="numeric" placeholder="${t('pay_ph')}" class="inp" style="width:4.5rem;padding:.2rem"><button class="btn2" onclick="addPay('${s.id}')">${t('add_pay')}</button><button class="btn2" onclick="payAll('${s.id}')">${t('pay_all')}</button>`:''}<button class="btn2" onclick="openFiche('${s.id}')">📄 ${t('fiche')}</button><button class="btn2" onclick="editStudent('${s.id}')">${t('edit')}</button><button class="btn2" style="color:#dc2626" onclick="delStudent('${s.id}')">${t('del')}</button></div>`)).join('')||`<p class="text-slate-400 text-center py-4 text-sm">${t('none_stud')}</p>`;
+}
+
+/* authentification (verrou local : PBKDF2-SHA256 + sel, jamais de mot de passe en clair) */
+const AK='academy_auth',OK='academy_ok';
+const getAuth=()=>{try{return JSON.parse(localStorage.getItem(AK))}catch(e){return null}};
+const hasSubtle=()=>!!(window.crypto&&crypto.subtle);
+async function hashPw(pw,salt,alg){
+  const enc=new TextEncoder();
+  if(alg==='pbkdf2'&&hasSubtle()){
+    const k=await crypto.subtle.importKey('raw',enc.encode(pw),'PBKDF2',false,['deriveBits']);
+    const b=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:enc.encode(salt),iterations:100000},k,256);
+    return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');
+  }
+  let h1=0xdeadbeef,h2=0x41c6ce57;for(const c of enc.encode(salt+'|'+pw)){h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}
+  return (h1>>>0).toString(16)+(h2>>>0).toString(16);
+}
+async function mkAuth(u,pw,def){const salt=uid()+uid(),alg=hasSubtle()?'pbkdf2':'fb';return{u,salt,alg,h:await hashPw(pw,salt,alg),def:!!def}}
+async function initAuth(){if(!getAuth())localStorage.setItem(AK,JSON.stringify(await mkAuth('admin','admin',true)))}
+let fails=0,lockUntil=0,idleT;
+async function doLogin(){
+  const err=$('lg-err');err.textContent='';
+  if(Date.now()<lockUntil){err.textContent=t('locked');return}
+  const a=getAuth(),u=$('lg-user').value.trim(),p=$('lg-pass').value;
+  let ok=false;try{ok=!!a&&u===a.u&&(await hashPw(p,a.salt,a.alg))===a.h}catch(e){}
+  if(!ok){if(++fails>=5){lockUntil=Date.now()+30000;fails=0;err.textContent=t('locked')}else err.textContent=t('bad_login');return}
+  fails=0;sessionStorage.setItem(OK,'1');showApp();
+}
+function showApp(){$('login').style.display='none';$('app').style.display='block';$('lg-pass').value='';render();armIdle()}
+function logout(){sessionStorage.removeItem(OK);clearTimeout(idleT);closeFiche();$('app').style.display='none';$('lg-user').value='';$('lg-pass').value='';$('lg-err').textContent='';$('login').style.display='flex'}
+function armIdle(){clearTimeout(idleT);idleT=setTimeout(logout,15*60*1000)}
+['click','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{if(sessionStorage.getItem(OK))armIdle()},{passive:true}));
+$('lg-go').onclick=doLogin;$('lg-user').onkeydown=$('lg-pass').onkeydown=e=>{if(e.key==='Enter')doLogin()};
+$('logout').onclick=logout;
+$('sec-save').onclick=async()=>{
+  const a=getAuth(),cur=$('sc-cur').value,nu=$('sc-user').value.trim()||a.u,np=$('sc-new').value,np2=$('sc-new2').value;
+  if((await hashPw(cur,a.salt,a.alg))!==a.h){toast('pw_wrong');return}
+  if(np&&np.length<6){toast('pw_short');return}
+  if(np&&np!==np2){toast('pw_mismatch');return}
+  const n=np?await mkAuth(nu,np,false):{...a,u:nu};
+  localStorage.setItem(AK,JSON.stringify(n));
+  ['sc-cur','sc-user','sc-new','sc-new2'].forEach(k=>$(k).value='');
+  render();toast('pw_changed');
+};
+
+/* paramètres + sauvegarde */
+function fillSettings(){$('set-name').value=db.settings.name||'';$('set-addr').value=db.settings.addr||'';$('set-phone').value=db.settings.phone||'';$('set-email').value=db.settings.email||'';$('set-dir').value=db.settings.dir||''}
+$('set-save').onclick=()=>{db.settings={name:$('set-name').value.trim(),addr:$('set-addr').value.trim(),phone:$('set-phone').value.trim(),email:$('set-email').value.trim(),dir:$('set-dir').value.trim()};save();toast('saved')};
+$('bk-gen').onclick=()=>{$('bk').value=JSON.stringify(db)};
+$('bk-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('bk').value);toast('copied')}catch(e){$('bk').select()}};
+$('bk-load').onclick=()=>{
+  try{
+    const d=JSON.parse($('bk').value);
+    if(!Array.isArray(d.courses)||!Array.isArray(d.students))throw 0;
+    if(confirm(t('conf_r'))){db={courses:[],students:[],settings:{},seq:0,...d};norm();save();fillSettings();toast('restored')}
+  }catch(e){toast('bad')}
+};
+
+load();norm();resetS();fillSettings();$('x-date').value=today();$('ce-date').value=today();tab('dashboard');applyLang();$('lg-lang').onclick=()=>$('lang').click();initAuth().then(()=>{if(sessionStorage.getItem(OK))showApp();else $('login').style.display='flex'});
+</script>
+</body>
+</html>
